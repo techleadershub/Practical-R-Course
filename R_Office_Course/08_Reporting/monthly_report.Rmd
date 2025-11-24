@@ -1,0 +1,64 @@
+---
+title: "Monthly IT System Report"
+author: "DevOps Team"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  server_role: "web"
+  threshold: 80
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(knitr)
+
+# Simulate Data Loading
+logs <- tibble(
+  server = paste0("srv-", 1:100),
+  role = sample(c("web", "db", "cache"), 100, replace = TRUE),
+  cpu = runif(100, 10, 99),
+  requests = sample(1000:5000, 100)
+)
+```
+
+## Executive Summary
+
+This report covers the performance of **`r params$server_role`** servers.
+The alert threshold is set to **`r params$threshold`%** CPU usage.
+
+## System Health Status
+
+```{r}
+# Filter data based on parameters
+target_servers <- logs %>% 
+  filter(role == params$server_role)
+
+avg_cpu <- mean(target_servers$cpu)
+```
+
+Current average CPU load for `r params$server_role` tier is **`r round(avg_cpu, 1)`%**.
+
+## High Load Incidents
+
+The following servers are exceeding the `r params$threshold`% threshold:
+
+```{r}
+alerts <- target_servers %>% 
+  filter(cpu > params$threshold) %>% 
+  arrange(desc(cpu)) %>% 
+  select(server, cpu, requests)
+
+# Display as a nice table
+kable(alerts, caption = "Servers requiring attention")
+```
+
+## Performance Distribution
+
+```{r fig.height=4}
+ggplot(target_servers, aes(x = cpu)) +
+  geom_histogram(binwidth = 5, fill = "firebrick", color = "white") +
+  labs(title = "CPU Load Distribution", x = "CPU Usage %", y = "Count") +
+  theme_minimal()
+```
+
